@@ -15,6 +15,27 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/Drop", produces = "text/html;charset=UTF-8")
 public class DropController {
+    public static void deleteAllFilesOfDir(File file) {
+        if (null != file) {
+            if (!file.exists())
+                return;
+            if (file.isFile()) {
+                boolean result = file.delete();
+                int tryCount = 0;
+                while (!result && tryCount++ < 10) {
+                    System.gc(); // 回收资源
+                    result = file.delete();
+                }
+            }
+            File[] files = file.listFiles();
+            if (null != files) {
+                for (int i = 0; i < files.length; i++) {
+                    deleteAllFilesOfDir(files[i]);
+                }
+            }
+            file.delete();
+        }
+    }
     @SysLog("删除数据库")
     @RequestMapping("/Database")
     public String DropDatabase(String Databasename) {
@@ -22,7 +43,7 @@ public class DropController {
             File file = new File(SQLConstant.getPath() + SQLConstant.separatePath() + Databasename);
             if (file.exists()) {
                 try {
-                    file.delete();
+                    deleteAllFilesOfDir(file);
                     return Feedback.info("删除数据库成功", Feedback.STATUS_SUCCESS).toString();
                 } catch (Exception e) {
                     e.printStackTrace();
